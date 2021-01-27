@@ -1,22 +1,30 @@
 package com.udacity.asteroidradar.repository
 
-import com.udacity.asteroidradar.api.Asteroid
-import com.udacity.asteroidradar.api.ImageOfTheDay
-import com.udacity.asteroidradar.api.NetworkService
-import com.udacity.asteroidradar.api.parseAsteroidsJsonResult
-import com.udacity.asteroidradar.api.parseImageOfTheDayJsonResult
-import com.udacity.asteroidradar.api.asDatabaseDomain
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.udacity.asteroidradar.api.*
 import com.udacity.asteroidradar.database.AsteroidDb
+import com.udacity.asteroidradar.database.asDomainModel
+import com.udacity.asteroidradar.getNextSevenDaysFormattedDates
+import com.udacity.asteroidradar.getToday
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import timber.log.Timber
+import java.net.UnknownHostException
 
 class AsteroidRepository(
     private val database: AsteroidDb,
     private val apiService: NetworkService
 ) {
-    val asteroids = database.asteroidDao.get()
+    private val _asteroids = MutableLiveData<List<Asteroid>>()
+    val asteroids: LiveData<List<Asteroid>>
+        get() = _asteroids
     val imageOfTheDay = database.imageOfTheDayDao.get()
+
+    private val _errorContainer = MutableLiveData<Boolean>()
+    val errorContainer: LiveData<Boolean>
+        get() = _errorContainer
 
     private suspend fun insert(listOfAsteroid: List<Asteroid>) {
         withContext(Dispatchers.IO) {
@@ -33,17 +41,59 @@ class AsteroidRepository(
         }
     }
 
-    suspend fun getDataFromNetwork() {
+    suspend fun getDataFromDatabase() {
         withContext(Dispatchers.IO) {
-            val response = apiService.getFeed("", "")
-            insert(parseAsteroidsJsonResult(JSONObject(response)))
+            val list = database.asteroidDao.get().asDomainModel()
+            if (list.isEmpty()) {
+                _errorContainer.postValue(true)
+            } else {
+                _errorContainer.postValue(false)
+            }
+            _asteroids.postValue(list)
+        }
+    }
+
+    suspend fun getTodayDataFromNetwork() {
+        withContext(Dispatchers.IO) {
+            _errorContainer.postValue(false)
+            try {
+                val today = getToday()
+                val startDate = today.first
+                val endData = today.second
+                val response = apiService.getFeed(startDate, endData)
+                val listOfAsteroid = parseAsteroidsJsonResult(JSONObject(response)).toList()
+                _asteroids.postValue(listOfAsteroid)
+                insert(parseAsteroidsJsonResult(JSONObject(response)))
+            } catch (e: UnknownHostException) {
+                _errorContainer.postValue(true)
+            }
+        }
+    }
+
+    suspend fun getNextSevenDataFromNetwork() {
+        withContext(Dispatchers.IO) {
+            _errorContainer.postValue(false)
+            try {
+                val startDate = getNextSevenDaysFormattedDates().first()
+                val endDate = getNextSevenDaysFormattedDates().last()
+                val response = apiService.getFeed(startDate, endDate)
+                val listOfAsteroid = parseAsteroidsJsonResult(JSONObject(response)).toList()
+                _asteroids.postValue(listOfAsteroid)
+                insert(parseAsteroidsJsonResult(JSONObject(response)))
+            } catch (e: UnknownHostException) {
+                _errorContainer.postValue(true)
+            }
         }
     }
 
     suspend fun getImageFromNetwork() {
         withContext(Dispatchers.IO) {
-            val response = apiService.getImageOfTheDay()
-            insert(parseImageOfTheDayJsonResult(JSONObject(response)))
+            try {
+                val response = apiService.getImageOfTheDay()
+                insert(parseImageOfTheDayJsonResult(JSONObject(response)))
+            } catch (e: UnknownHostException) {
+                Timber.e(e)
+            }
         }
     }
 }

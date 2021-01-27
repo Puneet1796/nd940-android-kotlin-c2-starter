@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="spacing_normal">16dp</dimen>
+    <dimen name="spacing_medium">12dp</dimen>
+    <dimen name="spacing_very_small">4dp</dimen>
+    <dimen name="details_status_image_height">280dp</dimen>
+    <dimen name="main_image_of_the_day_height">220dp</dimen>
+</resources>

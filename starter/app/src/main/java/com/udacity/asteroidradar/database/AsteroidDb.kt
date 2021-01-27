@@ -53,13 +53,13 @@ fun ImageOfTheDayEntity.asDomainModel(): ImageOfTheDay {
 @Dao
 interface AsteroidDao {
     @Query("SELECT * FROM asteroids_table")
-    fun get(): LiveData<List<AsteroidEntity>>
+    fun get(): List<AsteroidEntity>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(vararg asteroid: AsteroidEntity)
 
-    @Query("DELETE FROM asteroids_table")
-    suspend fun clear()
+    @Query("DELETE FROM asteroids_table WHERE close_approach_date = :date")
+    suspend fun clear(date: String)
 }
 
 @Dao
@@ -67,13 +67,14 @@ interface ImageOfTheDayDao {
     @Query("SELECT * FROM image_of_the_table")
     fun get(): LiveData<ImageOfTheDayEntity>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(imageOfTheDayEntity: ImageOfTheDayEntity)
 
     @Query("DELETE FROM image_of_the_table")
     suspend fun clear()
 }
 
+@Database(entities = [AsteroidEntity::class, ImageOfTheDayEntity::class], version = 1)
 abstract class AsteroidDb : RoomDatabase() {
     abstract val asteroidDao: AsteroidDao
     abstract val imageOfTheDayDao: ImageOfTheDayDao

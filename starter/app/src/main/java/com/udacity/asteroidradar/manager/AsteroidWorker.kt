@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.udacity.asteroidradar.api.Network
 import com.udacity.asteroidradar.database.getDatabase
+import com.udacity.asteroidradar.getPreviousDay
 import com.udacity.asteroidradar.repository.AsteroidRepository
 import retrofit2.HttpException
 
@@ -18,10 +19,10 @@ class AsteroidWorker(appContext: Context, params: WorkerParameters) :
     override suspend fun doWork(): Result {
         val database = getDatabase(applicationContext)
         val repository = AsteroidRepository(database, Network.apiService)
-        database.asteroidDao.clear()
+        database.asteroidDao.clear(getPreviousDay())
         database.imageOfTheDayDao.clear()
         return try {
-            repository.getDataFromNetwork()
+            repository.getNextSevenDataFromNetwork()
             repository.getImageFromNetwork()
             Result.success()
         } catch (exception: HttpException) {

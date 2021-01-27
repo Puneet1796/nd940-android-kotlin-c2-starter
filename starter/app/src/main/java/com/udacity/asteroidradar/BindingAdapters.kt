@@ -4,8 +4,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.udacity.asteroidradar.api.Asteroid
 import com.udacity.asteroidradar.main.AsteroidAdapter
+import timber.log.Timber
 
 @BindingAdapter("listOfAsteroids")
 fun bindRecyclerView(recyclerView: RecyclerView, listOfAsteroids: List<Asteroid>?) {
@@ -15,11 +17,48 @@ fun bindRecyclerView(recyclerView: RecyclerView, listOfAsteroids: List<Asteroid>
     }
 }
 
+@BindingAdapter("imageUrl")
+fun bindImageView(imageView: ImageView, url: String?) {
+    Timber.i("Image URL: $url")
+    Glide.with(imageView.context)
+        .load(url)
+        .placeholder(R.drawable.loading_animation)
+        .error(R.drawable.ic_broken_image)
+        .into(imageView)
+}
+
+@BindingAdapter("contentDescription")
+fun bind(imageView: ImageView, isHazardous: Boolean) {
+    val res = imageView.context.resources
+    if (isHazardous) {
+        imageView.contentDescription = res.getString(
+            R.string.asteroid_status_image_description,
+            res.getString(R.string.potentially_hazardous)
+        )
+    } else {
+        imageView.contentDescription = res.getString(
+            R.string.asteroid_status_image_description,
+            res.getString(R.string.not_potentially_hazardous)
+        )
+    }
+}
+
 @BindingAdapter("statusIcon")
 fun bindAsteroidStatusImage(imageView: ImageView, isHazardous: Boolean) {
+    val res = imageView.context.resources
     if (isHazardous) {
+        imageView.contentDescription =
+            res.getString(
+                R.string.asteroid_status_description,
+                res.getString(R.string.potentially_hazardous)
+            )
         imageView.setImageResource(R.drawable.ic_status_potentially_hazardous)
     } else {
+        imageView.contentDescription =
+            res.getString(
+                R.string.asteroid_status_description,
+                res.getString(R.string.not_potentially_hazardous)
+            )
         imageView.setImageResource(R.drawable.ic_status_normal)
     }
 }
